@@ -1,7 +1,6 @@
 <%
-    if (session.getAttribute("login")!="OK") {
-            response.sendRedirect("index.jsp");
-        }
+     Integer aux = (Integer) session.getAttribute("saldo_actual");
+     System.out.println(aux);
 %>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
@@ -38,7 +37,7 @@
                 </div>
                 <div class="mb-3">
                     <label for="" class="form-label">Monto a Retirar</label>                    
-                    <input type="number" onKeyUp="document.getElementById(this.id).value=document.getElementById(this.id).value.toUpperCase()" class="form-control" name="monto" min="0" max="${Cuentas.saldo}" value="" placeholder="Introduzca el monto" required>
+                    <input type="number" onKeyUp="document.getElementById(this.id).value=document.getElementById(this.id).value.toUpperCase()" class="form-control" name="monto" min="0" max=<%=aux %> value="" placeholder="Introduzca el monto" required>
                 </div>
                 <button type="submit" class="btn btn-dark">Retirar</button>
                  <a class="btn btn-primary" href="MovimientosControlador">Volver</a>

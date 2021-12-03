@@ -34,6 +34,7 @@ public class LoginControlador extends HttpServlet {
             System.out.println("Los datos introducidos fueron validados exitosamente");
             //guardamos el ID del cliente con la funcion que yo creé
             int id = val.Id(usuario, contraseña);
+            int saldo = val.Saldo(id);
             //int saldo = val.Saldo(id);
             HttpSession ses = request.getSession();
             //y guardamos datos de tipo session
@@ -42,7 +43,7 @@ public class LoginControlador extends HttpServlet {
             //y este es donde subimos el ID del cliente.
             ses.setAttribute("us_id",id);
             //ses.setAttribute("us_id",saldo);
-            System.out.println(ses.getAttribute("login"));
+            ses.setAttribute("saldo_actual", saldo);
             //redirigimos y ya
             response.sendRedirect("CuentaControlador");
         }else{

@@ -61,7 +61,7 @@ public class CuentasDAOimpl extends ConexionDB implements CuentasDAO {
         List<Cuentas> lista = null;
         try {
             this.conectar();
-            String sql = "SELECT * FROM reg_cuentas WHERE COD_CLIENTE=?";
+            String sql = "SELECT * FROM reg_cuentas WHERE COD_CLIENTE=? ORDER BY ID_REGISTRO DESC";
             PreparedStatement ps = this.conn.prepareStatement(sql);
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
