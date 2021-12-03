@@ -1,0 +1,102 @@
+USE bd_proyecto;
+------CREACION DE TABLAS--------
+create table Clientes(
+	ID_CLIENTE int not null auto_increment,
+	NOMBRES varchar(50),
+	APELLIDOS varchar(70),
+	CEDULA_IDENTIDAD varchar(30),
+   SEXO varchar(10),
+   DIRECCION varchar(100),
+   CELULAR varchar(10),
+   CORREO varchar(100),
+	primary key (ID_CLIENTE));
+create table Usuarios(
+	ID_USUARIO int not null auto_increment,
+	USUARIO varchar(70),
+	CONTRASEÑA varchar(100),
+	NIVEL varchar(13),
+	COD_CLIENTE int,
+	primary key (ID_USUARIO),
+	foreign key (COD_CLIENTE)references Clientes(ID_CLIENTE));
+create table Reg_cuentas(
+	ID_REGISTRO int not null auto_increment,
+	SALDO int not null,
+	FECHA date,
+	COD_CLIENTE int,
+	primary key (ID_REGISTRO),
+	foreign key (COD_CLIENTE)references Clientes(ID_CLIENTE));
+create table Movimientos(
+	ID_REGISTRO int not null auto_increment,
+    MONTO int not null,
+    FECHA date,
+    TIPO varchar(8),
+    COD_CLI int not null,
+    primary key(ID_REGISTRO),
+    foreign key (COD_CLI)references Clientes (ID_CLIENTE));
+
+
+--------TRIGGERS---------
+DELIMITER //
+CREATE OR REPLACE TRIGGER Reg_User_Pass_Ins
+AFTER INSERT ON clientes FOR EACH ROW
+BEGIN
+	SET @id = NEW.ID_CLIENTE;
+	SET @user = (select concat(substring(NOMBRES,1,1),SUBSTRING_INDEX(SUBSTRING_INDEX(APELLIDOS, ' ',1), ' ',-1))from clientes where ID_CLIENTE=@id);
+    SET @pass = (select sha1(convert(CEDULA_IDENTIDAD,SIGNED)) from clientes where ID_CLIENTE = @id);
+    INSERT INTO usuarios (USUARIO,CONTRASEÑA,NIVEL,COD_CLIENTE) VALUES (@user,@pass,'CLIENTE',@id);
+END//
+DELIMITER ;
+
+DELIMITER //
+CREATE OR REPLACE TRIGGER Reg_User_Pass_Upd
+AFTER UPDATE ON clientes FOR EACH ROW
+BEGIN
+	SET @id = NEW.ID_CLIENTE;
+	SET @user = (select concat(substring(NOMBRES,1,1),SUBSTRING_INDEX(SUBSTRING_INDEX(APELLIDOS, ' ',1), ' ',-1))from clientes where ID_CLIENTE=@id);
+    SET @pass = (select sha1(convert(CEDULA_IDENTIDAD,SIGNED)) from clientes where ID_CLIENTE = @id);
+    UPDATE usuarios SET USUARIO=@user, CONTRASEÑA=@pass WHERE COD_CLIENTE=@id;
+END//
+DELIMITER ;
+
+DELIMITER //
+CREATE OR REPLACE TRIGGER Reg_Movs
+AFTER INSERT ON movimientos FOR EACH ROW
+BEGIN
+	SET @id = NEW.COD_CLI;
+	SET @saldo = (SELECT SALDO FROM reg_cuentas WHERE COD_CLIENTE=@id ORDER BY ID_REGISTRO DESC LIMIT 1);
+	IF NEW.TIPO = 'DEPOSITO' THEN BEGIN 
+    		INSERT INTO reg_cuentas (SALDO,FECHA,COD_CLIENTE) VALUES ((@saldo+(SELECT MONTO FROM movimientos WHERE TIPO='DEPOSITO' and COD_CLI = @id ORDER BY ID_REGISTRO DESC LIMIT 1)),CURDATE(),(SELECT ID_CLIENTE FROM clientes WHERE ID_CLIENTE = @id));
+        END; END IF;
+    IF NEW.TIPO = 'RETIRO' THEN BEGIN
+    	INSERT INTO reg_cuentas (SALDO,FECHA,COD_CLIENTE) VALUES ((@saldo-(SELECT MONTO FROM movimientos WHERE TIPO='RETIRO' and COD_CLI = @id ORDER BY ID_REGISTRO DESC LIMIT 1)),CURDATE(),(SELECT ID_CLIENTE FROM clientes WHERE ID_CLIENTE = @id));
+        END; END IF;
+END//
+DELIMITER ;
+
+
+--------CONSULTAS PARA PROBAR LOS TRIGGERS Y EL ACCESO A LA BD------
+insert into clientes (NOMBRES,APELLIDOS,CEDULA_IDENTIDAD,SEXO,DIRECCION,CELULAR,CORREO) values ('ALEJANDRO','CARRASCO MARTINEZ','7123829LP','HOMBRE','AV. ALEJANDRO PAEZ CALLE ZABALETA NRO 1293','76426398','ACARRASCO@GMAIL.COM');
+insert into clientes (NOMBRES,APELLIDOS,CEDULA_IDENTIDAD,SEXO,DIRECCION,CELULAR,CORREO) values ('JOSE CARLOS','QUISPE','61729301SCZ','HOMBRE','AV. MARTINEZ CALLE ALEJO NRO 2931','64576135','JQUISPE@GMAIL.COM');
+
+
+insert into reg_cuentas(SALDO,FECHA,COD_CLIENTE) values (200,'2021-03-13',1);
+insert into reg_cuentas(SALDO,FECHA,COD_CLIENTE) values (500,'2021-08-06',2);
+
+insert into movimientos (MONTO,FECHA,TIPO,COD_CLI) values (250,'2021-03-13','DEPOSITO',1);
+insert into movimientos (MONTO,FECHA,TIPO,COD_CLI) values (100,'2021-03-13','RETIRO',2);
+
+DELIMITER //
+CREATE OR REPLACE TRIGGER Updt_cuentas
+BEFORE INSERT ON reg_cuentas FOR EACH ROW
+BEGIN
+    SET NEW.FECHA := CONCAT(CURDATE());
+END//
+DELIMITER ;
+
+DELIMITER //
+CREATE OR REPLACE TRIGGER Updt_movs
+BEFORE INSERT ON movimientos FOR EACH ROW
+BEGIN
+    SET NEW.FECHA := CONCAT(CURDATE());
+END//
+DELIMITER ;
